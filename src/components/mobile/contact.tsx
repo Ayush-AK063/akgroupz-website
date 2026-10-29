@@ -1,13 +1,14 @@
 "use client";
 
 import { motion } from "motion/react";
-import { ArrowUpRight, Mail, MapPin } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, Loader2, Mail, MapPin } from "lucide-react";
 import { site } from "@/data/site";
-import { topics, useContactForm } from "../sections/contact";
+import { topics } from "@/lib/enquiry-email";
+import { Honeypot, SendNote, sendLabel, useContactForm } from "../sections/contact";
 import { ChipRow, MHead, MSection } from "./kit";
 
 export function MContact() {
-  const { topic, setTopic, message, setMessage, flash, onSubmit } = useContactForm();
+  const { topic, setTopic, message, setMessage, flash, onSubmit, status, error, hasBrief } = useContactForm();
 
   return (
     <MSection className="overflow-hidden">
@@ -36,7 +37,8 @@ export function MContact() {
           </div>
         </div>
 
-        <form onSubmit={onSubmit} className="mt-8">
+        <form onSubmit={onSubmit} className="relative mt-8">
+          <Honeypot />
           <p className="mb-3 text-sm text-muted">I&apos;m reaching out about</p>
           <ChipRow id="m-topic" value={topic} onChange={setTopic} options={topics.map((t) => ({ id: t, label: t }))} />
 
@@ -45,7 +47,10 @@ export function MContact() {
             <Field name="email" label="Email" type="email" autoComplete="email" inputMode="email" required />
             <Field name="company" label="Company (optional)" autoComplete="organization" />
             <label className={`block rounded-2xl border border-line px-4 pb-2 pt-3 transition-colors focus-within:border-accent ${flash ? "bg-accent/10" : "bg-white/[0.03]"}`}>
-              <span className="block text-xs text-dim">Tell us a little more</span>
+              <span className="flex items-center justify-between text-xs text-dim">
+                Tell us a little more
+                {hasBrief && <span className="text-accent-2">Brief attached</span>}
+              </span>
               <textarea
                 name="message"
                 required
@@ -61,10 +66,13 @@ export function MContact() {
           <motion.button
             whileTap={{ scale: 0.98 }}
             type="submit"
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-fg py-4 text-[15px] font-semibold text-ink"
+            disabled={status === "sending"}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-fg py-4 text-[15px] font-semibold text-ink disabled:opacity-70"
           >
-            Send message <ArrowUpRight className="size-4" />
+            {sendLabel(status, "Send message")}
+            {status === "sending" ? <Loader2 className="size-4 animate-spin" /> : status === "sent" ? <CheckCircle2 className="size-4" /> : <ArrowUpRight className="size-4" />}
           </motion.button>
+          <SendNote status={status} error={error} className="mt-4" />
         </form>
       </div>
     </MSection>

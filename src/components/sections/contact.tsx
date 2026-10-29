@@ -2,24 +2,30 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { motion } from "motion/react";
-import { ArrowUpRight, Mail, MapPin } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, Loader2, Mail, MapPin } from "lucide-react";
 import { site } from "@/data/site";
+import { topics, type Brief } from "@/lib/enquiry-email";
 import { Container, Eyebrow } from "../ui";
 import { Reveal, SplitWords } from "../motion";
 
-export const topics = ["New project", "Partnership", "Investment", "Advertising", "Careers", "Other"];
+export type SendStatus = "idle" | "sending" | "sent" | "error";
 
 /** Shared form state; the project builder hands its brief over through `akg:brief`. */
 export function useContactForm() {
   const [topic, setTopic] = useState(topics[0]);
   const [message, setMessage] = useState("");
+  const [brief, setBrief] = useState<Brief>();
   const [flash, setFlash] = useState(false);
+  const [status, setStatus] = useState<SendStatus>("idle");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const onBrief = (e: Event) => {
-      const { topic, message } = (e as CustomEvent<{ topic: string; message: string }>).detail;
+      const { topic, message, brief } = (e as CustomEvent<{ topic: string; message: string; brief?: Brief }>).detail;
       setTopic(topic);
       setMessage(message);
+      setBrief(brief);
+      setStatus("idle");
       setFlash(true);
       setTimeout(() => setFlash(false), 1600);
     };
@@ -27,20 +33,75 @@ export function useContactForm() {
     return () => window.removeEventListener("akg:brief", onBrief);
   }, []);
 
-  // No backend yet: hand the message to the visitor's mail client, pre-filled.
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const subject = `[${topic}] ${f.get("name")}${f.get("company") ? ` — ${f.get("company")}` : ""}`;
-    const body = `${f.get("message")}\n\n— ${f.get("name")}\n${f.get("email")}${f.get("company") ? `\n${f.get("company")}` : ""}`;
-    window.location.href = `mailto:${site.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    if (status === "sending") return;
+    const form = e.currentTarget;
+    const f = new FormData(form);
+    setStatus("sending");
+    setError("");
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic,
+          name: f.get("name"),
+          email: f.get("email"),
+          company: f.get("company"),
+          message: f.get("message"),
+          website: f.get("website"),
+          // The builder's brief only travels with project enquiries.
+          brief: topic === "New project" ? brief : undefined,
+          page: window.location.pathname,
+        }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? "Something went wrong.");
+      form.reset();
+      setMessage("");
+      setBrief(undefined);
+      setStatus("sent");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setStatus("error");
+    }
   };
 
-  return { topic, setTopic, message, setMessage, flash, onSubmit };
+  return { topic, setTopic, message, setMessage, flash, onSubmit, status, error, hasBrief: !!brief && topic === "New project" };
 }
 
+/** Hidden from people, irresistible to bots. */
+export function Honeypot() {
+  return (
+    <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden className="absolute -left-[9999px] size-px opacity-0" />
+  );
+}
+
+/** Line under the submit button: confirmation, or the error with the inbox as a fallback. */
+export function SendNote({ status, error, className = "" }: { status: SendStatus; error: string; className?: string }) {
+  if (status === "sent")
+    return (
+      <p role="status" className={`flex items-center gap-2 text-sm text-emerald-300 ${className}`}>
+        <CheckCircle2 className="size-4 shrink-0" /> Thanks! Your message is with us. We&apos;ll reply within two working days.
+      </p>
+    );
+  if (status === "error")
+    return (
+      <p role="alert" className={`text-sm text-rose-300 ${className}`}>
+        {error} You can also email us at{" "}
+        <a href={`mailto:${site.email}`} className="underline underline-offset-2">
+          {site.email}
+        </a>
+        .
+      </p>
+    );
+  return null;
+}
+
+export const sendLabel = (status: SendStatus, idle: string) => (status === "sending" ? "Sending…" : status === "sent" ? "Message sent" : idle);
+
 export function Contact() {
-  const { topic, setTopic, message, setMessage, flash, onSubmit } = useContactForm();
+  const { topic, setTopic, message, setMessage, flash, onSubmit, status, error, hasBrief } = useContactForm();
 
   return (
     <section className="relative hidden overflow-hidden py-16 sm:py-24 md:block">
@@ -81,7 +142,8 @@ export function Contact() {
           </div>
 
           <Reveal delay={0.1}>
-            <form onSubmit={onSubmit} className="rounded-[28px] border border-line bg-ink-2/80 p-6 sm:p-10">
+            <form onSubmit={onSubmit} className="relative rounded-[28px] border border-line bg-ink-2/80 p-6 sm:p-10">
+              <Honeypot />
               <fieldset>
                 <legend className="text-sm text-muted">I&apos;m reaching out about</legend>
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -111,7 +173,10 @@ export function Contact() {
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block">
-                    <span className="text-sm text-muted">Tell us a little more</span>
+                    <span className="flex items-center justify-between text-sm text-muted">
+                      Tell us a little more
+                      {hasBrief && <span className="text-xs text-accent-2">Project brief attached</span>}
+                    </span>
                     <textarea
                       name="message"
                       required
@@ -127,13 +192,15 @@ export function Contact() {
 
               <button
                 type="submit"
-                className="group mt-10 flex w-full items-center justify-between rounded-full bg-fg py-2 pr-2 pl-6 text-sm font-medium text-ink transition hover:bg-white"
+                disabled={status === "sending"}
+                className="group mt-10 flex w-full items-center justify-between rounded-full bg-fg py-2 pr-2 pl-6 text-sm font-medium text-ink transition hover:bg-white disabled:opacity-70"
               >
-                Send message
+                {sendLabel(status, "Send message")}
                 <span className="grid size-10 place-items-center rounded-full bg-ink text-fg transition-transform duration-500 group-hover:rotate-45">
-                  <ArrowUpRight className="size-4" />
+                  {status === "sending" ? <Loader2 className="size-4 animate-spin" /> : status === "sent" ? <CheckCircle2 className="size-4" /> : <ArrowUpRight className="size-4" />}
                 </span>
               </button>
+              <SendNote status={status} error={error} className="mt-4" />
             </form>
           </Reveal>
         </div>

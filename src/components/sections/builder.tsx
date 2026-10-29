@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Check, Plus } from "lucide-react";
 import { Container, Eyebrow } from "../ui";
 import { Reveal, SplitWords } from "../motion";
+import type { Brief } from "@/lib/enquiry-email";
 
 export const types = [
   { id: "website", label: "Website", weeks: 2, team: ["Designer", "Web developer"] },
@@ -64,7 +65,14 @@ export function useBuilder() {
       ``,
       `A bit about my business: `,
     ].join("\n");
-    window.dispatchEvent(new CustomEvent("akg:brief", { detail: { topic: "New project", message } }));
+    const brief: Brief = {
+      type: t.label,
+      size: `${s.label} (${s.hint})`,
+      features: chosen.map((f) => f.label),
+      estimate: `${min}–${max} weeks`,
+      team,
+    };
+    window.dispatchEvent(new CustomEvent("akg:brief", { detail: { topic: "New project", message, brief } }));
     document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
   };
 
