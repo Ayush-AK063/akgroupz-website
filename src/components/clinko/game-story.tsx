@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRef, type ReactNode } from "react";
 import { motion, useMotionTemplate, useTransform, useScroll, type MotionValue } from "motion/react";
-import { Check, ShieldCheck, Sparkles, Trophy, Zap } from "lucide-react";
+import { Check, Heart, ShieldCheck, Sparkles, Trophy, Zap } from "lucide-react";
 import { scrollToY } from "../smooth-scroll";
 
 /*
@@ -23,6 +23,7 @@ type Panel = {
   glow: string;
   art: string;
   Screen: (props: { p: MotionValue<number> }) => ReactNode;
+  noCoins?: boolean; // entertainment-only panel: no floating coin/diamond
 };
 
 const panels: Panel[] = [
@@ -69,6 +70,18 @@ const panels: Panel[] = [
     glow: "45 212 191",
     art: "/clinko/tic_tac_toe.png",
     Screen: TicTacToeScreen,
+  },
+  {
+    id: "future",
+    tag: "Future Games",
+    title: ["One line.", "Many surprises."],
+    body: "Discover your next relationship, career, salary, trip or best friend. Follow the moving line, answer playful questions and get a funny, surprising story — purely for fun.",
+    feature: { icon: Heart, label: "6 journeys, endless twists", pill: "Just for fun" },
+    bg: "#2a0a2e",
+    glow: "219 39 119",
+    art: "/clinko/future_play.png",
+    Screen: FutureScreen,
+    noCoins: true,
   },
   {
     id: "board",
@@ -185,9 +198,11 @@ function StoryPanel({ panel, index, t }: { panel: Panel; index: number; t: Motio
           >
             <Image src={panel.art} alt="" width={260} height={260} className="w-full drop-shadow-[0_30px_40px_rgba(0,0,0,0.5)]" />
           </motion.div>
-          <motion.div style={{ y: textY }} className="absolute bottom-[14%] left-[4%] z-20 w-[16%] max-w-[90px] animate-float sm:left-[10%]">
-            <Image src={index % 2 ? "/clinko/diamond_icon.png" : "/clinko/coin_icon.png"} alt="" width={120} height={120} className="w-full" />
-          </motion.div>
+          {!panel.noCoins && (
+            <motion.div style={{ y: textY }} className="absolute bottom-[14%] left-[4%] z-20 w-[16%] max-w-[90px] animate-float sm:left-[10%]">
+              <Image src={index % 2 ? "/clinko/diamond_icon.png" : "/clinko/coin_icon.png"} alt="" width={120} height={120} className="w-full" />
+            </motion.div>
+          )}
         </div>
       </div>
     </motion.div>
@@ -297,6 +312,76 @@ function ScratchScreen({ p }: { p: MotionValue<number> }) {
       </div>
       <div className="mt-auto text-center text-[10px] text-white/50">3 cards left today</div>
     </>
+  );
+}
+
+// Future Games: a dot travels a winding line; each checkpoint reveals a playful answer as you scroll.
+const FUTURE_STEPS = [
+  { q: "Who is the next connection?", a: "Someone very special ✨" },
+  { q: "Where will you meet?", a: "At a chai stall ☕" },
+  { q: "First date plan?", a: "Samosa party 🥳" },
+  { q: "Your story title is…", a: "The Café Story 💕" },
+];
+const FUTURE_PATH = "M30 20 C 150 20, 150 70, 90 70 S 30 120, 150 120 S 150 170, 60 170";
+
+function FutureScreen({ p }: { p: MotionValue<number> }) {
+  const dash = useTransform(p, [0.05, 0.85], [1, 0]);
+  return (
+    <>
+      <div className="flex items-center justify-between">
+        <span className="truncate text-[11px] font-bold tracking-wide sm:text-[13px]">MY NEXT RELATIONSHIP</span>
+        <span className="shrink-0 rounded-full bg-pink-500/20 px-2 py-0.5 text-[9px] font-semibold text-pink-200">Just for fun</span>
+      </div>
+      <div className="relative mt-3 rounded-2xl bg-white/[0.06] p-2">
+        <svg viewBox="0 0 180 190" className="h-[150px] w-full">
+          <path d={FUTURE_PATH} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="4" strokeLinecap="round" />
+          <motion.path
+            d={FUTURE_PATH}
+            fill="none"
+            stroke="url(#fg-line)"
+            strokeWidth="4"
+            strokeLinecap="round"
+            pathLength={1}
+            strokeDasharray="1 1"
+            style={{ strokeDashoffset: dash }}
+          />
+          <defs>
+            <linearGradient id="fg-line" x1="0" x2="1">
+              <stop offset="0" stopColor="#f472b6" />
+              <stop offset="1" stopColor="#a855f7" />
+            </linearGradient>
+          </defs>
+          {[[30, 20], [90, 70], [150, 120], [60, 170]].map(([x, y], i) => (
+            <FutureNode key={i} x={x} y={y} i={i} p={p} />
+          ))}
+        </svg>
+      </div>
+      <div className="mt-3 flex flex-col gap-1.5">
+        {FUTURE_STEPS.map((s, i) => (
+          <FutureAnswer key={s.q} step={s} i={i} p={p} />
+        ))}
+      </div>
+    </>
+  );
+}
+
+const futureAt = (i: number) => 0.12 + i * 0.22;
+
+function FutureNode({ x, y, i, p }: { x: number; y: number; i: number; p: MotionValue<number> }) {
+  const on = useTransform(p, [futureAt(i) - 0.04, futureAt(i)], [0, 1]);
+  const fill = useTransform(on, (v) => `rgba(244,114,182,${0.25 + v * 0.75})`);
+  const r = useTransform(on, [0, 0.6, 1], [6, 9, 7]);
+  return <motion.circle cx={x} cy={y} style={{ fill, r }} stroke="#fff" strokeWidth="2" />;
+}
+
+function FutureAnswer({ step, i, p }: { step: { q: string; a: string }; i: number; p: MotionValue<number> }) {
+  const on = useTransform(p, [futureAt(i), futureAt(i) + 0.06], [0, 1]);
+  const y = useTransform(on, [0, 1], [8, 0]);
+  return (
+    <motion.div style={{ opacity: on, y }} className="rounded-xl bg-white/[0.07] px-2.5 py-1.5">
+      <p className="text-[9px] text-white/50">{step.q}</p>
+      <p className="text-[12px] font-semibold">{step.a}</p>
+    </motion.div>
   );
 }
 

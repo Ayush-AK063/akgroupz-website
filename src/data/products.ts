@@ -36,7 +36,7 @@ export const products: Product[] = [
     platforms: ["Android"],
     storeUrl: "https://play.google.com/store/apps/details?id=com.clinko.app",
     highlights: [
-      { title: "8", body: "skill & luck games in-app" },
+      { title: "9", body: "skill, luck & fun games in-app" },
       { title: "Daily", body: "bonuses, chests & surprises" },
       { title: "24/7", body: "live ops from our admin console" },
     ],
@@ -49,9 +49,10 @@ export const products: Product[] = [
       { icon: "/clinko/balloon_pop_icon.png", title: "Balloon Pop", body: "Fast reflex rounds built for one-thumb play." },
       { icon: "/clinko/dice_roll_icon.png", title: "Dice Roll", body: "Roll, predict and stack up your balance." },
       { icon: "/clinko/flip_the_coin_icon.png", title: "Flip the Coin", body: "Heads or tails — the fastest round in the app." },
+      { icon: "/clinko/future_play.png", title: "Future Games", body: "Discover your next relationship, career, salary or trip — playful story journeys, just for fun." },
     ],
     steps: [
-      { title: "Play", body: "Pick any of 8 games, daily bonuses or hourly chests." },
+      { title: "Play", body: "Pick any of 9 games, daily bonuses or hourly chests." },
       { title: "Earn", body: "Every round adds coins. Invite friends to multiply them." },
       { title: "Redeem", body: "Turn your coins into exciting rewards — the more you play, the more you unlock." },
     ],
