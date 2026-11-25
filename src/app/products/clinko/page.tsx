@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import type { Metadata } from "next";
 import { Download } from "lucide-react";
 import { products } from "@/data/products";
@@ -170,6 +171,13 @@ export default function ClinkoPage() {
               </div>
             </div>
           </Reveal>
+
+          <p className="mt-10 text-center text-sm text-white/60">
+            Want to delete the account you made in Clinko?{" "}
+            <Link href="/products/clinko/account-deletion" className="inline-block rounded-full border border-white/15 px-3 py-1 text-white/80 transition hover:border-white/30 hover:text-white">
+              Delete it here
+            </Link>
+          </p>
         </Container>
       </section>
     </div>
