@@ -178,6 +178,11 @@ export default function ClinkoPage() {
               Delete it here
             </Link>
           </p>
+          <p className="mt-4 text-center text-sm text-white/50">
+            <Link href="/products/clinko/privacy-policy" className="underline underline-offset-4 hover:text-white">Privacy Policy</Link>
+            <span className="mx-3">·</span>
+            <Link href="/products/clinko/terms-and-conditions" className="underline underline-offset-4 hover:text-white">Terms &amp; Conditions</Link>
+          </p>
         </Container>
       </section>
     </div>
